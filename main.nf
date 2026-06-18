@@ -11,8 +11,9 @@
 
 nextflow.enable.dsl = 2
 
-include { INPUT_CHECK } from './subworkflows/local/input_check'
-include { EDNA        } from './workflows/edna'
+include { INPUT_CHECK        } from './subworkflows/local/input_check'
+include { PREPARE_KRAKEN_DB  } from './subworkflows/local/prepare_kraken_db'
+include { EDNA               } from './workflows/edna'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -37,13 +38,21 @@ workflow {
     }
 
     input_samplesheet  = params.input
+    kraken2_database   = params.kraken2_db
     run_host_removal   = params.host_removal
     run_amr_profiling  = params.run_amr
 
     ch_adapter_fasta   = params.adapter_fasta ? channel.fromPath(params.adapter_fasta) : []
     ch_host_index      = params.host_removal && params.host_bowtie2_index ? channel.fromPath(params.host_bowtie2_index, type: 'dir') : []
-    ch_kraken_db       = channel.fromPath(params.kraken2_db, type: 'dir').collect()
     ch_multiqc_config  = params.multiqc_config ? channel.fromPath(params.multiqc_config) : []
+
+    /*
+    Resolve the Kraken2 / Bracken database into a single collected directory
+    channel. Handles both a ready-made DB directory and a `.tar.gz`/`.tgz`
+    archive (which is extracted first); the branching lives in the subworkflow.
+    */
+    PREPARE_KRAKEN_DB ( kraken2_database )
+    ch_kraken_db = PREPARE_KRAKEN_DB.out.db
 
     // ----------------------------
     // Pipeline run
