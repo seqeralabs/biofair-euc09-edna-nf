@@ -10,7 +10,7 @@ workflow INPUT_CHECK {
     samplesheet   // path: assets/samplesheet.csv
 
     main:
-    ch_reads = Channel
+    ch_reads = channel
         .fromPath(samplesheet, checkIfExists: true)
         .splitCsv(header: true, sep: ',')
         .map { row -> create_fastq_channel(row) }

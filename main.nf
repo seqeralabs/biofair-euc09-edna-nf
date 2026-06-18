@@ -22,7 +22,13 @@ include { EDNA        } from './workflows/edna'
 
 workflow {
 
-    // Minimal parameter validation (a full port would use nf-schema/plugin)
+    // ----------------------------
+    // Parameter setup
+    // ----------------------------
+    // Validate the required launch inputs, then resolve every `params.*` value
+    // the pipeline uses into an explicitly named channel or value here, so the
+    // run section below reads as a clean stage-by-stage story and downstream
+    // workflows never reach back into `params.*`.
     if (!params.input) {
         error "ERROR: please provide an input samplesheet with --input <path/to/samplesheet.csv>"
     }
@@ -30,13 +36,47 @@ workflow {
         error "ERROR: please provide a Kraken2 database directory with --kraken2_db <path>"
     }
 
-    INPUT_CHECK ( params.input )
+    input_samplesheet  = params.input
+    run_host_removal   = params.host_removal
+    run_amr_profiling  = params.run_amr
 
-    EDNA ( INPUT_CHECK.out.reads )
-}
+    ch_adapter_fasta   = params.adapter_fasta ? channel.fromPath(params.adapter_fasta) : []
+    ch_host_index      = params.host_removal && params.host_bowtie2_index ? channel.fromPath(params.host_bowtie2_index, type: 'dir') : []
+    ch_kraken_db       = channel.fromPath(params.kraken2_db, type: 'dir').collect()
+    ch_multiqc_config  = params.multiqc_config ? channel.fromPath(params.multiqc_config) : []
 
-workflow.onComplete {
-    log.info "Pipeline completed at: ${workflow.complete}"
-    log.info "Execution status: ${ workflow.success ? 'OK' : 'FAILED' }"
-    log.info "Results published to: ${params.outdir}"
+    // ----------------------------
+    // Pipeline run
+    // ----------------------------
+
+    /*
+    Parse the input samplesheet (CSV) into a [ meta, [reads] ] channel so every
+    downstream stage runs once per sample.
+    */
+    INPUT_CHECK ( input_samplesheet )
+
+    /*
+    Run the full eDNA / shotgun-metagenomics analysis on the parsed read pairs:
+    FastQC -> fastp trimming -> optional host removal -> Kraken2 classification
+    -> Bracken re-estimation -> optional AMR profiling -> MultiQC aggregation.
+    All param-derived inputs are passed in explicitly.
+    */
+    EDNA (
+        INPUT_CHECK.out.reads,
+        ch_adapter_fasta,
+        run_host_removal,
+        ch_host_index,
+        ch_kraken_db,
+        run_amr_profiling,
+        ch_multiqc_config,
+    )
+
+    // ----------------------------
+    // Completion handler
+    // ----------------------------
+    workflow.onComplete {
+        log.info "Pipeline completed at: ${workflow.complete}"
+        log.info "Execution status: ${ workflow.success ? 'OK' : 'FAILED' }"
+        log.info "Results published to: ${params.outdir}"
+    }
 }

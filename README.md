@@ -108,6 +108,20 @@ All parameters mirror the original Snakemake `config/config.yaml`. See
 `docker`, `singularity`, `conda`, `wave`, `test`. Combine container engine with
 the test profile, e.g. `-profile test,singularity`.
 
+## Resource limits
+
+Per-process resources come from the standard nf-core labels
+(`process_single` / `process_low` / `process_medium` / `process_high`) defined
+in `conf/base.config`. Ceilings are enforced with the modern `resourceLimits`
+directive — Nextflow silently caps any request (including the `* task.attempt`
+retry escalation) to these maxima, replacing the legacy `check_max()` helper and
+the `max_cpus` / `max_memory` / `max_time` params.
+
+Defaults are `cpus: 16, memory: 128.GB, time: 48.h`. To adapt to a different
+environment, override `process.resourceLimits` in a profile or a `-c <site>.config`
+file. The `test` profile (`conf/test.config`) already does this, capping to
+`cpus: 2, memory: 6.GB, time: 6.h` for CI runners.
+
 ## Outputs
 
 ```

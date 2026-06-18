@@ -17,33 +17,37 @@ include { MULTIQC             } from '../modules/local/multiqc'
 workflow EDNA {
 
     take:
-    ch_samplesheet   // channel: [ val(meta), [ reads ] ]
+    ch_samplesheet     // channel: [ val(meta), [ reads ] ]
+    ch_adapter_fasta   // channel: optional fastp adapter FASTA (or [])
+    run_host_removal   // value:   whether to run host/contaminant removal
+    ch_host_index      // channel: bowtie2 host index dir (or [])
+    ch_kraken_db       // channel: collected Kraken2 / Bracken database dir
+    run_amr_profiling  // value:   whether to run AMR profiling
+    ch_multiqc_config  // channel: optional MultiQC config (or [])
 
     main:
-    ch_versions     = Channel.empty()
-    ch_multiqc_files = Channel.empty()
+    ch_versions     = channel.empty()
+    ch_multiqc_files = channel.empty()
 
     //
     // MODULE: FastQC on raw reads  (Snakemake rule: fastqc_raw)
     //
     FASTQC ( ch_samplesheet )
     ch_versions      = ch_versions.mix(FASTQC.out.versions.first())
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.map { it[1] })
+    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.map { _meta, zip -> zip })
 
     //
     // MODULE: fastp adapter / quality trimming  (Snakemake rule: fastp_trim)
     //
-    ch_adapter = params.adapter_fasta ? Channel.fromPath(params.adapter_fasta) : []
-    FASTP ( ch_samplesheet, ch_adapter )
+    FASTP ( ch_samplesheet, ch_adapter_fasta )
     ch_versions      = ch_versions.mix(FASTP.out.versions.first())
-    ch_multiqc_files = ch_multiqc_files.mix(FASTP.out.json.map { it[1] })
+    ch_multiqc_files = ch_multiqc_files.mix(FASTP.out.json.map { _meta, json -> json })
 
     //
     // MODULE: optional host / contaminant removal  (Snakemake rule: host_removal)
     // The Snakemake `classifier_input()` input function becomes a channel branch.
     //
-    if ( params.host_removal ) {
-        ch_host_index = Channel.fromPath(params.host_bowtie2_index, type: 'dir')
+    if ( run_host_removal ) {
         BOWTIE2_HOSTREMOVAL ( FASTP.out.reads, ch_host_index )
         ch_versions       = ch_versions.mix(BOWTIE2_HOSTREMOVAL.out.versions.first())
         ch_classify_reads = BOWTIE2_HOSTREMOVAL.out.reads
@@ -54,10 +58,9 @@ workflow EDNA {
     //
     // MODULE: Kraken2 taxonomic classification  (Snakemake rule: kraken2)
     //
-    ch_kraken_db = Channel.fromPath(params.kraken2_db, type: 'dir').collect()
     KRAKEN2 ( ch_classify_reads, ch_kraken_db )
     ch_versions      = ch_versions.mix(KRAKEN2.out.versions.first())
-    ch_multiqc_files = ch_multiqc_files.mix(KRAKEN2.out.report.map { it[1] })
+    ch_multiqc_files = ch_multiqc_files.mix(KRAKEN2.out.report.map { _meta, report -> report })
 
     //
     // MODULE: Bracken abundance re-estimation  (Snakemake rule: bracken)
@@ -68,7 +71,7 @@ workflow EDNA {
     //
     // MODULE: AMR profiling  (Snakemake rule: amr_profile) -- optional
     //
-    if ( params.run_amr ) {
+    if ( run_amr_profiling ) {
         ABRICATE ( FASTP.out.reads )
         ch_versions = ch_versions.mix(ABRICATE.out.versions.first())
     }
@@ -81,7 +84,6 @@ workflow EDNA {
         .collectFile(name: 'collated_versions.yml')
         .set { ch_collated_versions }
 
-    ch_multiqc_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config) : []
     MULTIQC (
         ch_multiqc_files.mix(ch_collated_versions).collect(),
         ch_multiqc_config
