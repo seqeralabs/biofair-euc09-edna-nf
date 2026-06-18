@@ -10,8 +10,8 @@ process BRACKEN {
 
     conda "bioconda::bracken=2.9"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/bracken:2.9--py39hc16433a_0' :
-        'biocontainers/bracken:2.9--py39hc16433a_0' }"
+        'https://depot.galaxyproject.org/singularity/bracken:2.9--py39h1f90b4d_0' :
+        'biocontainers/bracken:2.9--py39h1f90b4d_0' }"
 
     input:
     tuple val(meta), path(kraken_report)
