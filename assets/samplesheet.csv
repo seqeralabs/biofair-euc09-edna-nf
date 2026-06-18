@@ -1,0 +1,4 @@
+sample,fastq_1,fastq_2,platform
+CEH_pond_01,assets/test_data/CEH_pond_01_R1.fastq.gz,assets/test_data/CEH_pond_01_R2.fastq.gz,illumina
+CEH_pond_02,assets/test_data/CEH_pond_02_R1.fastq.gz,assets/test_data/CEH_pond_02_R2.fastq.gz,illumina
+CEH_soil_22,assets/test_data/CEH_soil_22_R1.fastq.gz,,illumina

@@ -1,0 +1,75 @@
+# =============================================================================
+# eDNA / shotgun-metagenomics pipeline configuration
+# BioFAIR EUC-09 (UK Centre for Ecology & Hydrology)
+# =============================================================================
+
+# Sample sheet: tab-separated, one row per sample (see config/samples.tsv)
+samples: "config/samples.tsv"
+
+# Top-level output directory
+outdir: "results"
+
+# -----------------------------------------------------------------------------
+# Read trimming (fastp)
+# -----------------------------------------------------------------------------
+fastp:
+  # Minimum read length to keep after trimming
+  min_length: 50
+  # Phred quality cutoff for sliding-window trimming
+  quality_cutoff: 20
+  # Detect and trim adapters automatically for paired-end data
+  detect_adapter_for_pe: true
+  # Optional explicit adapter FASTA (set to "" to disable)
+  adapter_fasta: ""
+
+# -----------------------------------------------------------------------------
+# Host / contaminant removal (optional)
+# -----------------------------------------------------------------------------
+host_removal:
+  # Toggle the host-decontamination stage on/off
+  enabled: false
+  # Bowtie2 index prefix for the host genome (e.g. human GRCh38, or a
+  # spike-in / lab-contaminant reference). Ignored when enabled: false.
+  bowtie2_index: "resources/host/GRCh38_index"
+
+# -----------------------------------------------------------------------------
+# Taxonomic classification (Kraken2 + Bracken)
+# -----------------------------------------------------------------------------
+kraken2:
+  # Path to a built Kraken2 database directory (must also contain the
+  # Bracken *.kmer_distrib files for the read length below)
+  db: "resources/kraken2_db"
+  # Confidence threshold (0.0 - 1.0)
+  confidence: 0.1
+
+bracken:
+  # Read length the Bracken database was built for
+  read_length: 100
+  # Taxonomic level to re-estimate abundance at: D,P,C,O,F,G,S
+  level: "S"
+  # Minimum number of reads required for a classification
+  threshold: 10
+
+# -----------------------------------------------------------------------------
+# Functional / AMR profiling
+# -----------------------------------------------------------------------------
+amr:
+  # Toggle AMR gene profiling on/off
+  enabled: true
+  # abricate database to screen against (placeholder for AMRFinderPlus/CARD)
+  # one of: ncbi, card, resfinder, argannot, megares, vfdb
+  database: "card"
+  # Minimum % identity and % coverage to report a hit
+  min_identity: 80
+  min_coverage: 80
+
+# -----------------------------------------------------------------------------
+# Compute resources (threads per rule)
+# -----------------------------------------------------------------------------
+threads:
+  fastqc: 2
+  fastp: 4
+  host_removal: 8
+  kraken2: 8
+  bracken: 2
+  amr: 4

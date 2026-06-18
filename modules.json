@@ -1,0 +1,38 @@
+{
+    "name": "biofair/edna",
+    "homePage": "https://github.com/biofair/euc-09-edna",
+    "repos": {
+        "https://github.com/nf-core/modules.git": {
+            "modules": {
+                "nf-core": {
+                    "_comment": "These local modules are hand-ported from the listed nf-core modules. A production pipeline would `nf-core modules install` them and pin the git_sha shown here; the local/ copies were modelled on these interfaces.",
+                    "fastqc": {
+                        "branch": "master",
+                        "git_sha": "modelled-on-nf-core",
+                        "installed_by": ["local-port"]
+                    },
+                    "fastp": {
+                        "branch": "master",
+                        "git_sha": "modelled-on-nf-core",
+                        "installed_by": ["local-port"]
+                    },
+                    "kraken2/kraken2": {
+                        "branch": "master",
+                        "git_sha": "modelled-on-nf-core",
+                        "installed_by": ["local-port"]
+                    },
+                    "bracken/bracken": {
+                        "branch": "master",
+                        "git_sha": "modelled-on-nf-core",
+                        "installed_by": ["local-port"]
+                    },
+                    "multiqc": {
+                        "branch": "master",
+                        "git_sha": "modelled-on-nf-core",
+                        "installed_by": ["local-port"]
+                    }
+                }
+            }
+        }
+    }
+}

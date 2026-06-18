@@ -1,0 +1,174 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://raw.githubusercontent.com/biofair/euc-09-edna/master/nextflow_schema.json",
+    "title": "biofair/edna pipeline parameters",
+    "description": "eDNA & shotgun-metagenomics: QC -> taxonomic classification -> AMR profiling",
+    "type": "object",
+    "$defs": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": ["input", "outdir"],
+            "properties": {
+                "input": {
+                    "type": "string",
+                    "format": "file-path",
+                    "mimetype": "text/csv",
+                    "pattern": "^\\S+\\.csv$",
+                    "description": "Path to comma-separated samplesheet (columns: sample,fastq_1,fastq_2,platform).",
+                    "fa_icon": "fas fa-file-csv"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Output directory for results.",
+                    "default": "results",
+                    "fa_icon": "fas fa-folder-open"
+                },
+                "publish_dir_mode": {
+                    "type": "string",
+                    "default": "copy",
+                    "enum": ["symlink", "rellink", "link", "copy", "copyNoFollow", "move"],
+                    "description": "Method used to save pipeline results to output directory."
+                }
+            }
+        },
+        "trimming_options": {
+            "title": "Read trimming (fastp)",
+            "type": "object",
+            "fa_icon": "fas fa-cut",
+            "properties": {
+                "fastp_min_length": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "Minimum read length to keep after trimming."
+                },
+                "fastp_quality_cutoff": {
+                    "type": "integer",
+                    "default": 20,
+                    "description": "Phred quality cutoff for sliding-window trimming."
+                },
+                "adapter_fasta": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Optional FASTA of adapters to trim (overrides auto-detection)."
+                }
+            }
+        },
+        "host_removal_options": {
+            "title": "Host / contaminant removal",
+            "type": "object",
+            "fa_icon": "fas fa-filter",
+            "properties": {
+                "host_removal": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Enable Bowtie2-based host/contaminant read removal."
+                },
+                "host_bowtie2_index": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Directory containing the Bowtie2 index of the host genome."
+                }
+            }
+        },
+        "classification_options": {
+            "title": "Taxonomic classification (Kraken2 + Bracken)",
+            "type": "object",
+            "fa_icon": "fas fa-sitemap",
+            "required": ["kraken2_db"],
+            "properties": {
+                "kraken2_db": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Path to a built Kraken2/Bracken database directory."
+                },
+                "kraken2_confidence": {
+                    "type": "number",
+                    "default": 0.1,
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Kraken2 confidence score threshold."
+                },
+                "bracken_read_length": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Read length the Bracken database was built for."
+                },
+                "bracken_level": {
+                    "type": "string",
+                    "default": "S",
+                    "enum": ["D", "P", "C", "O", "F", "G", "S"],
+                    "description": "Taxonomic level at which to re-estimate abundance."
+                },
+                "bracken_threshold": {
+                    "type": "integer",
+                    "default": 10,
+                    "description": "Minimum number of reads required for a classification."
+                }
+            }
+        },
+        "amr_options": {
+            "title": "Functional / AMR profiling",
+            "type": "object",
+            "fa_icon": "fas fa-shield-virus",
+            "properties": {
+                "run_amr": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable antimicrobial-resistance gene profiling."
+                },
+                "amr_database": {
+                    "type": "string",
+                    "default": "card",
+                    "enum": ["ncbi", "card", "resfinder", "argannot", "megares", "vfdb"],
+                    "description": "abricate database to screen against."
+                },
+                "amr_min_identity": {
+                    "type": "integer",
+                    "default": 80,
+                    "description": "Minimum % identity to report an AMR hit."
+                },
+                "amr_min_coverage": {
+                    "type": "integer",
+                    "default": 80,
+                    "description": "Minimum % coverage to report an AMR hit."
+                }
+            }
+        },
+        "max_job_request_options": {
+            "title": "Max job request options",
+            "type": "object",
+            "fa_icon": "fab fa-acquisitions-incorporated",
+            "properties": {
+                "max_cpus": {
+                    "type": "integer",
+                    "default": 16,
+                    "description": "Maximum number of CPUs that can be requested for any single job."
+                },
+                "max_memory": {
+                    "type": "string",
+                    "default": "128.GB",
+                    "pattern": "^\\d+(\\.\\d+)?\\.?\\s*(K|M|G|T)?B$",
+                    "description": "Maximum amount of memory that can be requested for any single job."
+                },
+                "max_time": {
+                    "type": "string",
+                    "default": "48.h",
+                    "pattern": "^(\\d+\\.?\\s*(s|m|h|d|day)\\s*)+$",
+                    "description": "Maximum amount of time that can be requested for any single job."
+                }
+            }
+        }
+    },
+    "allOf": [
+        { "$ref": "#/$defs/input_output_options" },
+        { "$ref": "#/$defs/trimming_options" },
+        { "$ref": "#/$defs/host_removal_options" },
+        { "$ref": "#/$defs/classification_options" },
+        { "$ref": "#/$defs/amr_options" },
+        { "$ref": "#/$defs/max_job_request_options" }
+    ]
+}

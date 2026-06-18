@@ -1,0 +1,7 @@
+name: amr
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  # Placeholder for AMRFinderPlus / CARD-RGI; abricate is a light stand-in.
+  - bioconda::abricate=1.0.1

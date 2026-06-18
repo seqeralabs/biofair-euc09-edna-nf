@@ -1,0 +1,66 @@
+# =============================================================================
+# eDNA / shotgun-metagenomics pipeline  --  Snakemake (native execution)
+# BioFAIR EUC-09 (UK Centre for Ecology & Hydrology)
+#
+# Raw sequencing reads -> QC -> trimming -> (host removal) ->
+#   taxonomic classification (Kraken2 + Bracken) -> AMR profiling -> MultiQC
+#
+# Run with, e.g.:
+#   snakemake --use-conda --cores 16
+# =============================================================================
+
+import pandas as pd
+from snakemake.utils import min_version
+
+min_version("7.0")
+
+
+configfile: "config/config.yaml"
+
+
+# -----------------------------------------------------------------------------
+# Sample sheet handling
+# -----------------------------------------------------------------------------
+samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
+SAMPLES = samples["sample"].tolist()
+
+OUTDIR = config["outdir"]
+
+
+def is_paired(wildcards):
+    """A sample is paired-end if its fq2 column is non-empty."""
+    fq2 = samples.loc[wildcards.sample, "fq2"]
+    return isinstance(fq2, str) and fq2.strip() != ""
+
+
+def get_raw_reads(wildcards):
+    """Return the raw FASTQ(s) for a sample (1 file SE, 2 files PE)."""
+    row = samples.loc[wildcards.sample]
+    if is_paired(wildcards):
+        return [row["fq1"], row["fq2"]]
+    return [row["fq1"]]
+
+
+# -----------------------------------------------------------------------------
+# Rule includes (one module per analysis stage)
+# -----------------------------------------------------------------------------
+include: "rules/qc.smk"
+include: "rules/classify.smk"
+include: "rules/functional.smk"
+
+
+# -----------------------------------------------------------------------------
+# Target rule: collect every sample's final deliverables
+# -----------------------------------------------------------------------------
+rule all:
+    input:
+        # Per-sample taxonomic abundance (Bracken)
+        expand(f"{OUTDIR}/bracken/{{sample}}.bracken.tsv", sample=SAMPLES),
+        # Per-sample AMR profiles (only when enabled)
+        (
+            expand(f"{OUTDIR}/amr/{{sample}}.amr.tsv", sample=SAMPLES)
+            if config["amr"]["enabled"]
+            else []
+        ),
+        # Aggregate QC report
+        f"{OUTDIR}/multiqc/multiqc_report.html",

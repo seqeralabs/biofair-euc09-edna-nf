@@ -1,0 +1,5 @@
+sample	fq1	fq2	platform
+CEH_pond_01	resources/reads/CEH_pond_01_R1.fastq.gz	resources/reads/CEH_pond_01_R2.fastq.gz	illumina
+CEH_pond_02	resources/reads/CEH_pond_02_R1.fastq.gz	resources/reads/CEH_pond_02_R2.fastq.gz	illumina
+CEH_river_07	resources/reads/CEH_river_07_R1.fastq.gz	resources/reads/CEH_river_07_R2.fastq.gz	illumina
+CEH_soil_22	resources/reads/CEH_soil_22_R1.fastq.gz		illumina
